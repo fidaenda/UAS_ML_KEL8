@@ -350,10 +350,11 @@ def preprocess_kpr_input(form_data):
         "display_data": display_data_for_frontend # Mengembalikan detail pinjaman untuk tampilan
     }
 
-def get_recommended_houses(pokok_pinjaman_idr):
+def get_recommended_houses(pokok_pinjaman_idr, selected_house_id=None):
     """
     Mendapatkan rekomendasi rumah berdasarkan range dari pokok pinjaman.
     Range: 20% di bawah dan 20% di atas dari harga rumah yang sesuai dengan pokok pinjaman.
+    Mengecualikan rumah yang dipilih user dari rekomendasi.
     """
     print("\n=== Starting House Recommendation Process ===")
     print(f"Loan amount: Rp {pokok_pinjaman_idr:,.0f}")
@@ -373,12 +374,20 @@ def get_recommended_houses(pokok_pinjaman_idr):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Ambil rumah dalam range harga
-    cursor.execute("""
-        SELECT * FROM houses 
-        WHERE harga_idr BETWEEN ? AND ?
-        ORDER BY ABS(harga_idr - ?) LIMIT 6
-    """, (min_price, max_price, target_house_price))
+    # Ambil rumah dalam range harga, kecuali rumah yang dipilih user
+    if selected_house_id:
+        cursor.execute("""
+            SELECT * FROM houses 
+            WHERE harga_idr BETWEEN ? AND ?
+            AND id != ?
+            ORDER BY ABS(harga_idr - ?) LIMIT 6
+        """, (min_price, max_price, selected_house_id, target_house_price))
+    else:
+        cursor.execute("""
+            SELECT * FROM houses 
+            WHERE harga_idr BETWEEN ? AND ?
+            ORDER BY ABS(harga_idr - ?) LIMIT 6
+        """, (min_price, max_price, target_house_price))
     
     recommended_houses = [dict(row) for row in cursor.fetchall()]
     conn.close()
@@ -532,7 +541,7 @@ def predict():
                 print(f"DEBUG: KPR simulation results: {kpr_simulation_results}")
                 
                 # Get house recommendations based on loan amount
-                recommended_houses = get_recommended_houses(principal_loan_amount_idr)
+                recommended_houses = get_recommended_houses(principal_loan_amount_idr, request.form.get('house_id'))
 
             response_message = {
                 "status": "success",

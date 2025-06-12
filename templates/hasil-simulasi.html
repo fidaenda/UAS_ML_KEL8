@@ -52,39 +52,88 @@
             <p class="breadcrumbs"><span class="mr-2"><a href="{{ url_for('home') }}">Beranda <i class="ion-ios-arrow-forward"></i></a></span> <span>Hasil Persetujuan<i class="ion-ios-arrow-forward"></i></span></p>
           </div>
         </div>
-        <div class="row">
-          <div class="col-md-6">
-            <div class="card shadow-sm mb-4">
-              <div class="card-body">
-                <h3 class="card-title text-center mb-4">Detail Pengajuan Pinjaman</h3>
-                <div class="status-section mb-4">
-                  <h4>Status Pinjaman: <span id='prediction-status' class="text-success"></span></h4>
-                  <p><span id="probability-label">Probabilitas Disetujui</span>: <span id="probability-value"></span>%</p>
+
+        <!-- Status Card -->
+        <div class="row justify-content-center mb-5">
+          <div class="col-md-8">
+            <div class="card shadow-lg border-0 rounded-lg" style="background: #FFFFFF;">
+              <div class="card-body text-center py-5">
+                <div class="status-section">
+                  <h3 class="card-title h2 mb-5">Status Pengajuan KPR</h3>
+                  <div class="status-circle mb-4" id="status-circle">
+                    <div class="status-content">
+                      <h2 class="mb-0"><span id='prediction-status'></span></h2>
+                    </div>
+                  </div>
+                  <div class="probability-info">
+                    <p class="h5 mb-0">
+                      <span id="probability-label">Probabilitas Disetujui:</span> 
+                      <span id="probability-value" class="font-weight-bold"></span>%
+                    </p>
+                  </div>
                 </div>
-                <hr>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <!-- Detail Pengajuan Card -->
+          <div class="col-md-6">
+            <div class="card shadow-sm border-0 rounded-lg mb-4 h-100" style="background: #FFFFFF;">
+              <div class="card-header bg-transparent border-0 pt-4">
+                <h3 class="card-title h4 text-center mb-0">Detail Pengajuan</h3>
+              </div>
+              <div class="card-body">
                 <div class="details-section">
-                  <h4 class="mb-3">Detail Properti & Pinjaman:</h4>
-                  <p>Harga Rumah: <span id='harga-rumah'></span></p>
-                  <p>Uang Muka: <span id='uang-muka'></span></p>
-                  <p>Jumlah Pinjaman Diajukan: <span id='jumlah-pinjaman-diajukan'></span></p>
-                  <p>Jangka Waktu Pinjaman: <span id='loan-amount-term'></span> Bulan</p>
+                  <div class="detail-item mb-4 pb-3 border-bottom">
+                    <label class="text-muted small mb-1">Harga Properti</label>
+                    <h5 class="mb-0 font-weight-bold" id="harga-rumah"></h5>
+                  </div>
+                  <div class="detail-item mb-4 pb-3 border-bottom">
+                    <label class="text-muted small mb-1">Uang Muka</label>
+                    <h5 class="mb-0 font-weight-bold" id="uang-muka"></h5>
+                  </div>
+                  <div class="detail-item mb-4 pb-3 border-bottom">
+                    <label class="text-muted small mb-1">Jumlah Pinjaman</label>
+                    <h5 class="mb-0 font-weight-bold" id="jumlah-pinjaman-diajukan"></h5>
+                  </div>
+                  <div class="detail-item">
+                    <label class="text-muted small mb-1">Jangka Waktu</label>
+                    <h5 class="mb-0 font-weight-bold"><span id="loan-amount-term"></span> Bulan</h5>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
+          <!-- Simulasi KPR Card -->
           <div class="col-md-6">
-            <div class="card shadow-sm mb-4">
+            <div class="card shadow-sm border-0 rounded-lg mb-4 h-100" style="background: #FFFFFF;">
+              <div class="card-header bg-transparent border-0 pt-4">
+                <h3 class="card-title h4 text-center mb-0" id="kpr-simulation-title">Simulasi KPR</h3>
+              </div>
               <div class="card-body">
-                <h3 class="card-title text-center mb-4" id="kpr-simulation-title">Simulasi KPR Anda</h3>
                 <div id="kpr-simulation-details">
-                  <p>Bunga Tahunan: <span id="annual-interest-rate"></span>%</p>
-                  <p>Total Bunga Pinjaman: <span id="total-interest-paid"></span></p>
-                  <p>Total Pembayaran (Pokok + Bunga): <span id="total-payment"></span></p>
-                  <h4 class="mt-3">Estimasi Cicilan Bulanan: <span id="monthly-payment" class="text-primary"></span></h4>
-                  <div class="text-center mt-4">
-                    <button id="download-simulasi" class="btn btn-primary" style="background-color: #d8c75b; border: none;">
-                      <i class="icon-download"></i> Download Simulasi KPR (Excel)
+                  <div class="detail-item mb-4 pb-3 border-bottom">
+                    <label class="text-muted small mb-1">Bunga Tahunan</label>
+                    <h5 class="mb-0 font-weight-bold"><span id="annual-interest-rate"></span>%</h5>
+                  </div>
+                  <div class="detail-item mb-4 pb-3 border-bottom">
+                    <label class="text-muted small mb-1">Total Bunga</label>
+                    <h5 class="mb-0 font-weight-bold" id="total-interest-paid"></h5>
+                  </div>
+                  <div class="detail-item mb-4 pb-3 border-bottom">
+                    <label class="text-muted small mb-1">Total Pembayaran</label>
+                    <h5 class="mb-0 font-weight-bold" id="total-payment"></h5>
+                  </div>
+                  <div class="detail-item mb-4">
+                    <label class="text-muted small mb-1">Cicilan per Bulan</label>
+                    <h4 class="mb-0 font-weight-bold text-primary" id="monthly-payment"></h4>
+                  </div>
+                  <div class="text-center">
+                    <button id="download-simulasi" class="btn btn-lg btn-primary px-4 rounded-pill" style="background-color: #d8c75b; border: none;">
+                      <i class="icon-download mr-2"></i>Download Simulasi KPR
                     </button>
                   </div>
                 </div>
@@ -93,31 +142,30 @@
           </div>
         </div>
 
-        <div class="row mt-4">
+        <!-- Rekomendasi Properti Section -->
+        <div class="row mt-5">
           <div class="col-12">
-            <div class="card shadow-sm">
+            <div class="card shadow-sm border-0 rounded-lg">
+              <div class="card-header bg-transparent border-0">
+                <h3 class="card-title text-center mb-0">Rekomendasi Properti dengan Harga Serupa</h3>
+              </div>
               <div class="card-body">
-                <h3 class="card-title text-center mb-4">Rekomendasi Rumah dengan Harga Serupa</h3>
                 <div id="rekomendasi-list" class="row">
                   <!-- Rekomendasi rumah akan ditampilkan di sini -->
                 </div>
-                <div id="no-rekomendasi" class="col-12 text-center" style="display: none;">
-                  <p>Tidak ada rekomendasi rumah dengan harga serupa saat ini.</p>
+                <div id="no-rekomendasi" class="col-12 text-center py-5" style="display: none;">
+                  <p class="text-muted mb-0">Tidak ada rekomendasi properti dengan harga serupa saat ini.</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </section>
 
-    <!-- Tambahkan section untuk catatan penting -->
-    <section class="ftco-section" style="padding: 2em 0;">
-      <div class="container">
-        <div class="row">
+        <!-- Disclaimer Section -->
+        <div class="row mt-5">
           <div class="col-md-12">
-            <div class="alert alert-warning" role="alert">
-              <h4 class="alert-heading mb-3"><i class="icon-info-circle"></i> Catatan Penting:</h4>
+            <div class="alert alert-warning border-0 shadow-sm" role="alert">
+              <h4 class="alert-heading mb-3"><i class="icon-info-circle"></i> Catatan Penting</h4>
               <p class="mb-2">Hasil prediksi ini memiliki beberapa batasan yang perlu diperhatikan:</p>
               <ul class="mb-3">
                 <li>Prediksi hanya berdasarkan variabel terbatas yang Anda input melalui form.</li>
@@ -141,6 +189,109 @@
         </div>
       </div>
     </section>
+
+    <style>
+      .card {
+        transition: all 0.3s ease;
+        border-radius: 15px !important;
+      }
+      .card:hover {
+        transform: translateY(-5px);
+      }
+      .detail-item label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .detail-item h5 {
+        font-size: 1.1rem;
+        color: #2d3436;
+      }
+      .status-circle {
+        width: 180px;
+        height: 180px;
+        margin: 0 auto;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        background-color: #f8f9fa;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .status-content {
+        text-align: center;
+      }
+      #prediction-status {
+        font-size: 2rem;
+        font-weight: 600;
+        margin: 0;
+        padding: 0;
+      }
+      .probability-info {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        display: inline-block;
+      }
+      .card-header {
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+      }
+      .card-header h3 {
+        font-weight: 600;
+        color: #2d3436;
+      }
+      .btn-primary {
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 4px rgba(216,199,91,0.3);
+      }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(216,199,91,0.4);
+      }
+      .alert-warning {
+        background-color: #fff8e1;
+        border-left: 4px solid #d8c75b;
+        border-radius: 10px;
+      }
+      .alert-warning .alert-heading {
+        color: #856404;
+        font-weight: 600;
+      }
+      #rekomendasi-list .card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+      }
+      #rekomendasi-list .card-img-top {
+        transition: all 0.3s ease;
+      }
+      #rekomendasi-list .card:hover .card-img-top {
+        transform: scale(1.05);
+      }
+      .breadcrumbs {
+        font-size: 0.9rem;
+      }
+      .breadcrumbs a {
+        color: #d8c75b;
+      }
+      .text-primary {
+        color: #d8c75b !important;
+      }
+      @media (max-width: 768px) {
+        .status-circle {
+          width: 150px;
+          height: 150px;
+        }
+        #prediction-status {
+          font-size: 1.75rem;
+        }
+      }
+    </style>
 
     <footer class="ftco-footer ftco-section">
       <div class="container">
@@ -263,9 +414,20 @@
       const data = JSON.parse(storedData);
       
       if (data.status === 'success') {
-        // Update prediction status
-        document.getElementById('prediction-status').textContent = data.prediction;
-        document.getElementById('prediction-status').className = data.prediction === 'Disetujui' ? 'text-success' : 'text-danger';
+        // Update prediction status and styling
+        const predictionStatus = document.getElementById('prediction-status');
+        const statusCircle = document.getElementById('status-circle');
+        
+        predictionStatus.textContent = data.prediction;
+        if (data.prediction === 'Disetujui') {
+          predictionStatus.className = 'text-success';
+          statusCircle.style.backgroundColor = '#d4edda';
+          statusCircle.style.boxShadow = '0 4px 15px rgba(40, 167, 69, 0.2)';
+        } else {
+          predictionStatus.className = 'text-danger';
+          statusCircle.style.backgroundColor = '#f8d7da';
+          statusCircle.style.boxShadow = '0 4px 15px rgba(220, 53, 69, 0.2)';
+        }
         
         // Update probability
         const probabilityPercent = (data.prediction === 'Disetujui' ? 
@@ -310,22 +472,26 @@
             const houseCard = document.createElement('div');
             houseCard.className = 'col-md-4 mb-4';
             houseCard.innerHTML = `
-              <div class="card h-100">
-                <img src="${house.image_url ? '/static/' + house.image_url : '/static/images/default-house.jpg'}" 
-                     class="card-img-top" 
-                     alt="${house.nama}" 
-                     style="height: 200px; object-fit: cover;"
-                     onerror="this.src='/static/images/default-house.jpg'">
+              <div class="card h-100 shadow-sm">
+                <div style="height: 200px; overflow: hidden;">
+                  <img src="${house.image_url ? '/static/' + house.image_url : '/static/images/default-house.jpg'}" 
+                       class="card-img-top" 
+                       alt="${house.nama}" 
+                       style="height: 100%; width: 100%; object-fit: cover;"
+                       onerror="this.src='/static/images/default-house.jpg'">
+                </div>
                 <div class="card-body">
-                  <h5 class="card-title">${house.nama}</h5>
-                  <p class="card-text">
-                    <strong>Harga:</strong> ${formatToRupiah(house.harga_idr)}<br>
-                    <strong>Lokasi:</strong> ${house.lokasi}<br>
-                    <strong>Kamar Tidur:</strong> ${house.kamar_tidur}<br>
-                    <strong>Kamar Mandi:</strong> ${house.kamar_mandi}<br>
-                    <strong>Luas Bangunan:</strong> ${house.luas_bangunan_m2} m²
-                  </p>
-                  <a href="/properties-single/${house.id}" class="btn btn-primary" style="background-color: #d8c75b; border: none;">
+                  <h5 class="card-title mb-3">${house.nama}</h5>
+                  <div class="mb-3">
+                    <h6 class="text-primary mb-0" style="color: #d8c75b !important;">${formatToRupiah(house.harga_idr)}</h6>
+                    <small class="text-muted"><i class="ion-ios-pin mr-2"></i>${house.lokasi}</small>
+                  </div>
+                  <div class="d-flex justify-content-between mb-3">
+                    <span><i class="flaticon-bed mr-2"></i>${house.kamar_tidur} Kamar</span>
+                    <span><i class="flaticon-bathtub mr-2"></i>${house.kamar_mandi} K.Mandi</span>
+                    <span><i class="flaticon-floor-plan mr-2"></i>${house.luas_bangunan_m2}m²</span>
+                  </div>
+                  <a href="/properties-single/${house.id}" class="btn btn-primary btn-block" style="background-color: #d8c75b; border: none;">
                     Lihat Detail
                   </a>
                 </div>
