@@ -225,7 +225,7 @@ def calculate_kpr_simulation_details_two_stage(principal_loan_idr, loan_term_mon
         "monthly_payment": blended_monthly_payment,
         "total_interest_paid": total_interest_paid,
         "total_payment": total_payment,
-        "annual_interest_rate": f"{fixed_rate_percent}% (36 bln) lalu {floating_rate_percent}%"
+        "annual_interest_rate": f"{fixed_rate_percent}% (36 bln) lalu {floating_rate_percent}"
     }
 
 # --- Pra-pemrosesan input untuk MODEL KPR (menggunakan data dari properties-single.html) ---
@@ -594,6 +594,7 @@ def property_single_page(house_id):
 def hasil_simulasi_page():
     return render_template('hasil-simulasi.html')
 
+# Bagian dari route /predict yang diperbaiki
 @app.route('/predict', methods=['POST'])
 def predict():
     if request.method == 'POST':
@@ -633,15 +634,27 @@ def predict():
                 loan_term_months = display_data_for_frontend.get('Loan_Amount_Term', 0)
                 print(f"DEBUG: Principal loan: {principal_loan_amount_idr:,.0f}")
                 print(f"DEBUG: Loan term: {loan_term_months} months")
-                # Ambil bunga fix dari form, default ke 7.5 jika tidak ada
-                fixed_rate = float(request.form.get('Bank_Fixed_Rate', KPR_ANNUAL_INTEREST_RATE))
+                
+                # ✅ PERBAIKAN: Ambil bunga fix dari form, default ke 6.0 jika tidak ada
+                fixed_rate = float(request.form.get('Bank_Fixed_Rate', 6.0))
+                floating_rate = 7.5  # Default floating rate
+                
+                print(f"DEBUG: Fixed rate: {fixed_rate}%, Floating rate: {floating_rate}%")
+                
                 kpr_simulation_results = calculate_kpr_simulation_details_two_stage(
                     principal_loan_amount_idr, 
                     loan_term_months, 
                     fixed_rate,
-                    floating_rate_percent=7.5,
+                    floating_rate_percent=floating_rate,
                     fixed_months=36
                 )
+                
+                # ✅ PERBAIKAN: Tambahkan info bunga ke hasil simulasi untuk frontend
+                kpr_simulation_results['fixed_rate'] = fixed_rate
+                kpr_simulation_results['floating_rate'] = floating_rate
+                kpr_simulation_results['principal_loan'] = principal_loan_amount_idr
+                kpr_simulation_results['loan_term'] = loan_term_months
+                
                 print(f"DEBUG: KPR simulation results: {kpr_simulation_results}")
                 
                 # Get house recommendations based on loan amount and clustering preference
@@ -676,15 +689,12 @@ def download_simulasi_kpr():
         # Get parameters from query string
         principal_loan = float(request.args.get('principal'))
         loan_term = int(request.args.get('term'))
-        # Accept both string and float for rate
-        rate_param = request.args.get('rate', KPR_ANNUAL_INTEREST_RATE)
-        try:
-            fixed_rate = float(rate_param)
-        except Exception:
-            # fallback if rate is not a float
-            fixed_rate = KPR_ANNUAL_INTEREST_RATE
-        floating_rate = 7.5
-        fixed_months = 36
+        # ✅ PERBAIKAN: Pastikan menggunakan fixed_rate dari parameter, bukan konstanta
+        fixed_rate = float(request.args.get('fixed_rate', 6.0))  # Default 6% jika tidak ada
+        floating_rate = float(request.args.get('floating_rate', 7.5))  # Default 7.5%
+        fixed_months = int(request.args.get('fixed_months', 36))  # Default 36 bulan
+
+        print(f"DEBUG Download: fixed_rate = {fixed_rate}%, floating_rate = {floating_rate}%")
 
         # Prepare installments list for Excel (two-stage logic)
         installments = []
@@ -694,12 +704,15 @@ def download_simulasi_kpr():
         # 1. Cicilan bunga fix
         if loan_term > fixed_months:
             n_fix = fixed_months
+            # ✅ PERBAIKAN: Gunakan fixed_rate, bukan KPR_ANNUAL_INTEREST_RATE
             monthly_interest_rate_fix = (fixed_rate / 100) / 12
-            total_term = loan_term
+            # BENAR: Hitung cicilan untuk seluruh periode dulu (seolah-olah seluruh periode pakai bunga fix)
             if monthly_interest_rate_fix == 0:
-                monthly_payment_fix = principal_loan / total_term
+                monthly_payment_fix = principal_loan / loan_term
             else:
-                monthly_payment_fix = principal_loan * (monthly_interest_rate_fix * (1 + monthly_interest_rate_fix) ** total_term) / ((1 + monthly_interest_rate_fix) ** total_term - 1)
+                monthly_payment_fix = principal_loan * (monthly_interest_rate_fix * (1 + monthly_interest_rate_fix) ** loan_term) / ((1 + monthly_interest_rate_fix) ** loan_term - 1)
+            
+            # Loop untuk 36 bulan pertama dengan bunga fix
             for _ in range(n_fix):
                 interest_payment = remaining_principal * monthly_interest_rate_fix
                 principal_payment = monthly_payment_fix - interest_payment
@@ -712,8 +725,10 @@ def download_simulasi_kpr():
                     'Sisa_Pinjaman': max(0, remaining_principal)
                 })
                 month += 1
+
         else:
             n_fix = loan_term
+            # ✅ PERBAIKAN: Gunakan fixed_rate, bukan KPR_ANNUAL_INTEREST_RATE
             monthly_interest_rate_fix = (fixed_rate / 100) / 12
             if monthly_interest_rate_fix == 0:
                 monthly_payment_fix = principal_loan / n_fix
@@ -738,10 +753,13 @@ def download_simulasi_kpr():
         n_float = loan_term - n_fix
         if n_float > 0:
             monthly_interest_rate_float = (floating_rate / 100) / 12
+            # BENAR: Hitung ulang cicilan untuk sisa periode dengan sisa pokok dan bunga floating
             if monthly_interest_rate_float == 0:
                 monthly_payment_float = remaining_principal / n_float
             else:
                 monthly_payment_float = remaining_principal * (monthly_interest_rate_float * (1 + monthly_interest_rate_float) ** n_float) / ((1 + monthly_interest_rate_float) ** n_float - 1)
+            
+            # Loop untuk sisa bulan dengan bunga floating
             for _ in range(n_float):
                 interest_payment = remaining_principal * monthly_interest_rate_float
                 principal_payment = monthly_payment_float - interest_payment
@@ -828,6 +846,6 @@ def download_simulasi_kpr():
         )
     except Exception as e:
         return jsonify({'error': str(e)}), 400
-
+    
 if __name__ == '__main__':
     app.run(debug=True)
