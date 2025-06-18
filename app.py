@@ -327,7 +327,7 @@ def preprocess_kpr_input(form_data):
     processed_data_for_model['LoanAmount'] = pokok_pinjaman_diajukan_idr
 
     # Loan_Amount_Term (numerik, dalam bulan, for display & model)
-    loan_amount_term_months_val = raw_loan_amount_term_months if not pd.isna(raw_loan_amount_term_months) and raw_loan_amount_term_months > 0 else DEFAULT_IMPUTATION_VALUES['Loan_Amount_Term']
+    loan_amount_term_months_val = raw_loan_amount_term_months if not pd.isna(raw_loan_amount_term_months) and raw_loan_amount_months > 0 else DEFAULT_IMPUTATION_VALUES['Loan_Amount_Term']
     
     display_data_for_frontend['Loan_Amount_Term'] = loan_amount_term_months_val 
     processed_data_for_model['Loan_Amount_Term'] = loan_amount_term_months_val 
