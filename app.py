@@ -13,9 +13,6 @@ from datetime import datetime
 import pickle
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = Flask(__name__)
 
@@ -114,6 +111,18 @@ DEFAULT_IMPUTATION_VALUES = {
 
 # --- KPR Simulation Parameters ---
 KPR_ANNUAL_INTEREST_RATE = 7.5 # in percent (e.g., 7.5% per year)
+KPR_FLOATING_RATE = 7.5 # Default floating rate after fixed period
+
+# --- Bank Interest Rate Configuration ---
+BANK_RATES = {
+    'BRI': {'fixed': 3.70, 'floating': 7.5},
+    'Mandiri': {'fixed': 6.00, 'floating': 7.5},
+    'BNI': {'fixed': 2.75, 'floating': 7.5},
+    'BTN': {'fixed': 5.99, 'floating': 7.5},
+    'BCA': {'fixed': 3.79, 'floating': 7.5},
+    'CIMB Niaga': {'fixed': 4.50, 'floating': 7.5},
+    'Danamon': {'fixed': 3.88, 'floating': 7.5}
+}
 
 # --- Fungsi untuk koneksi database SQLite ---
 def get_db_connection():
@@ -174,18 +183,25 @@ def calculate_monthly_installments(principal_loan_idr, loan_term_months, annual_
     return installments
 
 # --- Fungsi untuk menghitung simulasi KPR dengan bunga fix 3 tahun lalu floating ---
-def calculate_kpr_simulation_details_two_stage(principal_loan_idr, loan_term_months, fixed_rate_percent, floating_rate_percent=7.5, fixed_months=36):
+def calculate_kpr_simulation_details_two_stage(principal_loan_idr, loan_term_months, fixed_rate_percent, floating_rate_percent=None, fixed_months=36):
     if principal_loan_idr <= 0 or loan_term_months <= 0 or fixed_rate_percent < 0:
         return {
             "monthly_payment": 0.0,
             "total_interest_paid": 0.0,
             "total_payment": 0.0,
-            "annual_interest_rate": fixed_rate_percent
+            "annual_interest_rate": fixed_rate_percent,
+            "min_monthly_payment": 0.0,
+            "max_monthly_payment": 0.0
         }
 
-    # If loan term is less than or equal to fixed period, use only fixed rate
+    if floating_rate_percent is None:
+        floating_rate_percent = KPR_FLOATING_RATE
+
     if loan_term_months <= fixed_months:
-        return calculate_kpr_simulation_details(principal_loan_idr, loan_term_months, fixed_rate_percent)
+        result = calculate_kpr_simulation_details(principal_loan_idr, loan_term_months, fixed_rate_percent)
+        result["min_monthly_payment"] = result["monthly_payment"]
+        result["max_monthly_payment"] = result["monthly_payment"]
+        return result
 
     # 1. Cicilan 36 bulan pertama (bunga fix)
     monthly_interest_rate_fix = (fixed_rate_percent / 100) / 12
@@ -194,7 +210,6 @@ def calculate_kpr_simulation_details_two_stage(principal_loan_idr, loan_term_mon
         monthly_payment_fix = principal_loan_idr / loan_term_months
     else:
         monthly_payment_fix = principal_loan_idr * (monthly_interest_rate_fix * (1 + monthly_interest_rate_fix) ** loan_term_months) / ((1 + monthly_interest_rate_fix) ** loan_term_months - 1)
-    # Simulasikan 36x pembayaran
     remaining_principal = principal_loan_idr
     total_interest_fix = 0.0
     for _ in range(n_fix):
@@ -217,15 +232,26 @@ def calculate_kpr_simulation_details_two_stage(principal_loan_idr, loan_term_mon
         remaining_principal -= principal_payment
         total_interest_float += interest_payment
 
-    # Rata-rata cicilan per bulan (untuk display)
     blended_monthly_payment = (monthly_payment_fix * n_fix + monthly_payment_float * n_float) / loan_term_months
     total_interest_paid = total_interest_fix + total_interest_float
     total_payment = principal_loan_idr + total_interest_paid
+    if loan_term_months > fixed_months:
+        interest_rate_display = f"{fixed_rate_percent}% (36 bln) lalu {floating_rate_percent}%"
+    else:
+        interest_rate_display = f"{fixed_rate_percent}%"
+
+    min_monthly_payment = min(monthly_payment_fix, monthly_payment_float)
+    max_monthly_payment = max(monthly_payment_fix, monthly_payment_float)
+
     return {
         "monthly_payment": blended_monthly_payment,
         "total_interest_paid": total_interest_paid,
         "total_payment": total_payment,
-        "annual_interest_rate": f"{fixed_rate_percent}% (36 bln) lalu {floating_rate_percent}%"
+        "annual_interest_rate": interest_rate_display,
+        "fixed_rate": fixed_rate_percent,
+        "floating_rate": floating_rate_percent,
+        "min_monthly_payment": min_monthly_payment,
+        "max_monthly_payment": max_monthly_payment
     }
 
 # --- Pra-pemrosesan input untuk MODEL KPR (menggunakan data dari properties-single.html) ---
@@ -633,13 +659,17 @@ def predict():
                 loan_term_months = display_data_for_frontend.get('Loan_Amount_Term', 0)
                 print(f"DEBUG: Principal loan: {principal_loan_amount_idr:,.0f}")
                 print(f"DEBUG: Loan term: {loan_term_months} months")
-                # Ambil bunga fix dari form, default ke 7.5 jika tidak ada
+                
+                # Get bank and rates
+                selected_bank = request.form.get('Bank', '')
                 fixed_rate = float(request.form.get('Bank_Fixed_Rate', KPR_ANNUAL_INTEREST_RATE))
+                floating_rate = BANK_RATES.get(selected_bank, {}).get('floating', KPR_FLOATING_RATE)
+                
                 kpr_simulation_results = calculate_kpr_simulation_details_two_stage(
                     principal_loan_amount_idr, 
                     loan_term_months, 
                     fixed_rate,
-                    floating_rate_percent=7.5,
+                    floating_rate_percent=floating_rate,
                     fixed_months=36
                 )
                 print(f"DEBUG: KPR simulation results: {kpr_simulation_results}")
@@ -676,14 +706,16 @@ def download_simulasi_kpr():
         # Get parameters from query string
         principal_loan = float(request.args.get('principal'))
         loan_term = int(request.args.get('term'))
-        # Accept both string and float for rate
-        rate_param = request.args.get('rate', KPR_ANNUAL_INTEREST_RATE)
+        # Accept both string and float for rates
+        fixed_rate_param = request.args.get('fixed_rate', KPR_ANNUAL_INTEREST_RATE)
+        floating_rate_param = request.args.get('floating_rate', KPR_FLOATING_RATE)
         try:
-            fixed_rate = float(rate_param)
+            fixed_rate = float(fixed_rate_param)
+            floating_rate = float(floating_rate_param)
         except Exception:
-            # fallback if rate is not a float
+            # fallback if rates are not floats
             fixed_rate = KPR_ANNUAL_INTEREST_RATE
-        floating_rate = 7.5
+            floating_rate = KPR_FLOATING_RATE
         fixed_months = 36
 
         # Prepare installments list for Excel (two-stage logic)

@@ -452,20 +452,22 @@
           document.getElementById('annual-interest-rate').textContent = data.kpr_simulation.annual_interest_rate;
           document.getElementById('total-interest-paid').textContent = formatToRupiah(data.kpr_simulation.total_interest_paid);
           document.getElementById('total-payment').textContent = formatToRupiah(data.kpr_simulation.total_payment);
-          document.getElementById('monthly-payment').textContent = formatToRupiah(data.kpr_simulation.monthly_payment);
-          
+          // Cicilan per bulan sebagai rentang
+          let minCicilan = data.kpr_simulation.min_monthly_payment;
+          let maxCicilan = data.kpr_simulation.max_monthly_payment;
+          let cicilanText = formatToRupiah(minCicilan);
+          if (minCicilan !== maxCicilan) {
+            cicilanText += ' - ' + formatToRupiah(maxCicilan);
+          }
+          document.getElementById('monthly-payment').textContent = cicilanText;
           // Setup download button
           const downloadBtn = document.getElementById('download-simulasi');
           downloadBtn.addEventListener('click', () => {
-            // Always use the fixed rate from loan details if available, fallback to 7.5
-            let fixedRate = 7.5;
-            if (data.loan_details && data.loan_details.Bank_Fixed_Rate) {
-              fixedRate = data.loan_details.Bank_Fixed_Rate;
-            }
             const params = new URLSearchParams({
               principal: data.loan_details.JumlahPinjamanDiajukan,
               term: data.loan_details.Loan_Amount_Term,
-              rate: fixedRate
+              fixed_rate: data.kpr_simulation.fixed_rate,
+              floating_rate: data.kpr_simulation.floating_rate
             });
             window.location.href = `/download-simulasi-kpr?${params.toString()}`;
           });
