@@ -116,7 +116,7 @@
                         <div class="row mb-3">
                           <div class="col-lg-4">
                             <div class="form-group">
-                              <label for="gender">Jenis Kelamin</label>
+                              <label for="gender">Jenis Kelamin <span class="info-tooltip" data-toggle="tooltip" title="Pilih jenis kelamin Anda. Ini digunakan untuk analisis demografi dalam prediksi KPR."><i class="ion-ios-information-circle"></i></span></label>
                               <div class="form-field">
                                 <div class="select-wrap">
                                   <select id="gender" name="Gender" class="form-control">
@@ -130,7 +130,7 @@
                           </div>
                           <div class="col-lg-4">
                             <div class="form-group">
-                              <label for="married">Status Pernikahan</label>
+                              <label for="married">Status Pernikahan <span class="info-tooltip" data-toggle="tooltip" title="Pilih status pernikahan Anda. Data ini membantu analisis risiko kredit."><i class="ion-ios-information-circle"></i></span></label>
                               <div class="form-field">
                                 <div class="select-wrap">
                                   <select id="married" name="Married" class="form-control">
@@ -144,7 +144,7 @@
                           </div>
                           <div class="col-lg-4">
                             <div class="form-group">
-                              <label for="dependents">Jumlah Tanggungan</label>
+                              <label for="dependents">Jumlah Tanggungan <span class="info-tooltip" data-toggle="tooltip" title="Masukkan jumlah tanggungan (anak/keluarga) yang Anda miliki."><i class="ion-ios-information-circle"></i></span></label>
                               <div class="form-field">
                                 <div class="select-wrap">
                                   <select id="dependents" name="Dependents" class="form-control">
@@ -160,7 +160,7 @@
                           </div>
                           <div class="col-lg-4">
                             <div class="form-group">
-                              <label for="education">Pendidikan Terakhir</label>
+                              <label for="education">Pendidikan Terakhir <span class="info-tooltip" data-toggle="tooltip" title="Pilih pendidikan terakhir Anda. Pendidikan dapat mempengaruhi analisis kelayakan."><i class="ion-ios-information-circle"></i></span></label>
                               <div class="form-field">
                                 <div class="select-wrap">
                                   <select id="education" name="Education" class="form-control">
@@ -174,7 +174,7 @@
                           </div>
                           <div class="col-lg-4">
                             <div class="form-group">
-                              <label for="self_employed">Pekerja Mandiri</label>
+                              <label for="self_employed">Pekerja Mandiri <span class="info-tooltip" data-toggle="tooltip" title="Pilih jika Anda bekerja secara mandiri/wiraswasta."><i class="ion-ios-information-circle"></i></span></label>
                               <div class="form-field">
                                 <div class="select-wrap">
                                   <select id="self_employed" name="Self_Employed" class="form-control">
@@ -188,7 +188,7 @@
                           </div>
                           <div class="col-lg-4">
                             <div class="form-group">
-                              <label for="credit_history">Riwayat Kredit</label>
+                              <label for="credit_history">Riwayat Kredit <span class="info-tooltip" data-toggle="tooltip" title="Pilih status riwayat kredit Anda (baik/buruk)."><i class="ion-ios-information-circle"></i></span></label>
                               <div class="form-field">
                                 <div class="select-wrap">
                                   <select id="credit_history" name="Credit_History" class="form-control">
@@ -202,7 +202,7 @@
                           </div>
                           <div class="col-lg-4">
                             <div class="form-group">
-                              <label for="property_area">Area Properti</label>
+                              <label for="property_area">Area Properti <span class="info-tooltip" data-toggle="tooltip" title="Pilih lokasi properti (urban, semiurban, rural)."><i class="ion-ios-information-circle"></i></span></label>
                               <div class="form-field">
                                 <div class="select-wrap">
                                   <select id="property_area" name="Property_Area" class="form-control">
@@ -217,7 +217,7 @@
                           </div>
                           <div class="col-lg-4">
                             <div class="form-group">
-                              <label for="applicant_income">Pendapatan Pemohon</label>
+                              <label for="applicant_income">Pendapatan Pemohon <span class="info-tooltip" data-toggle="tooltip" title="Masukkan total pendapatan Anda dalam setahun (12 bulan)."><i class="ion-ios-information-circle"></i></span></label>
                               <div class="form-field">
                                 <input type="text" class="form-control" id="applicant_income" name="ApplicantIncome" placeholder="">
                               </div>
@@ -225,7 +225,7 @@
                           </div>
                           <div class="col-lg-4">
                             <div class="form-group">
-                              <label for="coapplicant_income">Pendapatan Co-Pemohon</label>
+                              <label for="coapplicant_income">Pendapatan Co-Pemohon <span class="info-tooltip" data-toggle="tooltip" title="Masukkan total pendapatan pasangan/anggota keluarga lain dalam setahun (12 bulan), jika ada."><i class="ion-ios-information-circle"></i></span></label>
                               <div class="form-field">
                                 <input type="text" class="form-control" id="coapplicant_income" name="CoapplicantIncome" placeholder="">
                               </div>
@@ -233,7 +233,7 @@
                           </div>
                           <div class="col-lg-4">
                             <div class="form-group">
-                              <label for="harga_rumah">Harga Rumah</label>
+                              <label for="harga_rumah">Harga Rumah <span class="info-tooltip" data-toggle="tooltip" title="Harga rumah yang akan diajukan KPR (otomatis dari properti)."><i class="ion-ios-information-circle"></i></span></label>
                               <div class="form-field">
                                 <input type="text" class="form-control" id="harga_rumah" name="harga_rumah" placeholder="Contoh: 750.000.000" readonly> 
                                 <input type="hidden" id="harga_rumah_raw" name="harga_rumah_raw_value">
@@ -242,7 +242,7 @@
                           </div>
                           <div class="col-lg-4">
                             <div class="form-group">
-                              <label for="uang_muka">Uang Muka</label>
+                              <label for="uang_muka">Uang Muka <span class="info-tooltip" data-toggle="tooltip" title="Masukkan jumlah uang muka yang akan dibayarkan."><i class="ion-ios-information-circle"></i></span></label>
                               <div class="form-field">
                                 <input type="text" class="form-control" id="uang_muka" name="uang_muka" placeholder="">
                               </div>
@@ -250,7 +250,19 @@
                           </div>
                           <div class="col-lg-4">
                             <div class="form-group">
-                              <label for="loan_amount_term">Jangka Waktu Pinjaman (Bulan)</label>
+                              <label for="use_clustering">Jenis Rekomendasi <span class="info-tooltip" data-toggle="tooltip" title="Pilih jenis rekomendasi properti: berdasarkan harga (default) atau fitur rumah (clustering)."><i class="ion-ios-information-circle"></i></span></label>
+                              <div class="form-field">
+                                <div class="custom-control custom-switch">
+                                  <input type="checkbox" class="custom-control-input" id="use_clustering" name="use_clustering" value="true">
+                                  <label class="custom-control-label" for="use_clustering">Berdasarkan Fitur (Clustering)</label>
+                                </div>
+                                <small class="form-text text-muted">Centang untuk rekomendasi berdasarkan fitur rumah, kosongkan untuk rekomendasi berdasarkan harga</small>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="col-lg-4">
+                            <div class="form-group">
+                              <label for="loan_amount_term">Jangka Waktu Pinjaman (Bulan) <span class="info-tooltip" data-toggle="tooltip" title="Pilih jangka waktu pinjaman (dalam bulan/tahun)."><i class="ion-ios-information-circle"></i></span></label>
                               <div class="form-field">
                                 <div class="select-wrap">
                                   <select id="loan_amount_term" name="Loan_Amount_Term" class="form-control">
@@ -263,6 +275,26 @@
                                     <option value="12">12 Bulan (1 Tahun)</option>
                                   </select>
                                   <input type="hidden" id="loan_amount_term_code" name="Loan_Amount_Term_Code" value="">
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="col-lg-4">
+                            <div class="form-group">
+                              <label for="bank">Bank <span class="info-tooltip" data-toggle="tooltip" title="Pilih bank yang akan digunakan untuk KPR."><i class="ion-ios-information-circle"></i></span></label>
+                              <div class="form-field">
+                                <div class="select-wrap">
+                                  <select id="bank" name="Bank" class="form-control" required>
+                                    <option value="" disabled selected hidden>Pilih Bank</option>
+                                    <option value="BRI" data-rate="3.70">BRI (3,70% fix 3 tahun)</option>
+                                    <option value="Mandiri" data-rate="6.00">Mandiri (6% fix 3 tahun)</option>
+                                    <option value="BNI" data-rate="2.75">BNI (2,75% fix 3 tahun)</option>
+                                    <option value="BTN" data-rate="5.99">BTN (5,99% fix 3 tahun)</option>
+                                    <option value="BCA" data-rate="3.79">BCA (3,79% fix 3 tahun)</option>
+                                    <option value="CIMB Niaga" data-rate="4.50">CIMB Niaga (4,50% fix 3 tahun)</option>
+                                    <option value="Danamon" data-rate="3.88">Danamon (3,88% fix 3 tahun)</option>
+                                  </select>
+                                  <input type="hidden" id="bank_fixed_rate" name="Bank_Fixed_Rate" value="">
                                 </div>
                               </div>
                             </div>
@@ -535,7 +567,27 @@
               
               loanAmountTermCodeInput.value = termCode;
           });
+
+          // Set fixed rate value to hidden input when bank is selected
+          document.addEventListener("DOMContentLoaded", function () {
+            const bankSelect = document.getElementById("bank");
+            const bankFixedRateInput = document.getElementById("bank_fixed_rate");
+            if (bankSelect && bankFixedRateInput) {
+              bankSelect.addEventListener("change", function () {
+                const selectedOption = bankSelect.options[bankSelect.selectedIndex];
+                const rate = selectedOption.getAttribute("data-rate");
+                bankFixedRateInput.value = rate ? rate : "";
+              });
+            }
+          });
       </script>
+
+<!-- Enable Bootstrap tooltips globally -->
+<script>
+  $(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+  });
+</script>
 
         
       </body>

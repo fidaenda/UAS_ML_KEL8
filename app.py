@@ -11,6 +11,11 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from datetime import datetime
 import pickle
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -167,6 +172,61 @@ def calculate_monthly_installments(principal_loan_idr, loan_term_months, annual_
         })
     
     return installments
+
+# --- Fungsi untuk menghitung simulasi KPR dengan bunga fix 3 tahun lalu floating ---
+def calculate_kpr_simulation_details_two_stage(principal_loan_idr, loan_term_months, fixed_rate_percent, floating_rate_percent=7.5, fixed_months=36):
+    if principal_loan_idr <= 0 or loan_term_months <= 0 or fixed_rate_percent < 0:
+        return {
+            "monthly_payment": 0.0,
+            "total_interest_paid": 0.0,
+            "total_payment": 0.0,
+            "annual_interest_rate": fixed_rate_percent
+        }
+
+    # If loan term is less than or equal to fixed period, use only fixed rate
+    if loan_term_months <= fixed_months:
+        return calculate_kpr_simulation_details(principal_loan_idr, loan_term_months, fixed_rate_percent)
+
+    # 1. Cicilan 36 bulan pertama (bunga fix)
+    monthly_interest_rate_fix = (fixed_rate_percent / 100) / 12
+    n_fix = int(fixed_months)
+    if monthly_interest_rate_fix == 0:
+        monthly_payment_fix = principal_loan_idr / loan_term_months
+    else:
+        monthly_payment_fix = principal_loan_idr * (monthly_interest_rate_fix * (1 + monthly_interest_rate_fix) ** loan_term_months) / ((1 + monthly_interest_rate_fix) ** loan_term_months - 1)
+    # Simulasikan 36x pembayaran
+    remaining_principal = principal_loan_idr
+    total_interest_fix = 0.0
+    for _ in range(n_fix):
+        interest_payment = remaining_principal * monthly_interest_rate_fix
+        principal_payment = monthly_payment_fix - interest_payment
+        remaining_principal -= principal_payment
+        total_interest_fix += interest_payment
+
+    # 2. Cicilan sisa bulan (bunga floating)
+    n_float = int(loan_term_months - n_fix)
+    monthly_interest_rate_float = (floating_rate_percent / 100) / 12
+    if monthly_interest_rate_float == 0:
+        monthly_payment_float = remaining_principal / n_float
+    else:
+        monthly_payment_float = remaining_principal * (monthly_interest_rate_float * (1 + monthly_interest_rate_float) ** n_float) / ((1 + monthly_interest_rate_float) ** n_float - 1)
+    total_interest_float = 0.0
+    for _ in range(n_float):
+        interest_payment = remaining_principal * monthly_interest_rate_float
+        principal_payment = monthly_payment_float - interest_payment
+        remaining_principal -= principal_payment
+        total_interest_float += interest_payment
+
+    # Rata-rata cicilan per bulan (untuk display)
+    blended_monthly_payment = (monthly_payment_fix * n_fix + monthly_payment_float * n_float) / loan_term_months
+    total_interest_paid = total_interest_fix + total_interest_float
+    total_payment = principal_loan_idr + total_interest_paid
+    return {
+        "monthly_payment": blended_monthly_payment,
+        "total_interest_paid": total_interest_paid,
+        "total_payment": total_payment,
+        "annual_interest_rate": f"{fixed_rate_percent}% (36 bln) lalu {floating_rate_percent}%"
+    }
 
 # --- Pra-pemrosesan input untuk MODEL KPR (menggunakan data dari properties-single.html) ---
 def preprocess_kpr_input(form_data):
@@ -350,46 +410,90 @@ def preprocess_kpr_input(form_data):
         "display_data": display_data_for_frontend # Mengembalikan detail pinjaman untuk tampilan
     }
 
-def get_recommended_houses(pokok_pinjaman_idr, selected_house_id=None):
+def get_recommended_houses(pokok_pinjaman_idr, selected_house_id=None, use_clustering=False):
     """
-    Mendapatkan rekomendasi rumah berdasarkan range dari pokok pinjaman.
-    Range: 20% di bawah dan 20% di atas dari harga rumah yang sesuai dengan pokok pinjaman.
-    Mengecualikan rumah yang dipilih user dari rekomendasi.
+    Mendapatkan rekomendasi rumah berdasarkan:
+    1. Range harga (20% di bawah dan di atas harga target) jika use_clustering=False
+    2. Clustering berdasarkan fitur rumah jika use_clustering=True
     """
     print("\n=== Starting House Recommendation Process ===")
     print(f"Loan amount: Rp {pokok_pinjaman_idr:,.0f}")
     
-    # Asumsikan pokok pinjaman adalah 80% dari harga rumah
-    target_house_price = pokok_pinjaman_idr / 0.8
-    print(f"Target house price: Rp {target_house_price:,.0f}")
-    
-    # Set range 20% di atas dan di bawah harga target
-    min_price = target_house_price * 0.8  # 20% di bawah target
-    max_price = target_house_price * 1.2  # 20% di atas target
-    
-    print(f"Price range for recommendations:")
-    print(f"- Minimum: Rp {min_price:,.0f}")
-    print(f"- Maximum: Rp {max_price:,.0f}")
-    
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # Ambil rumah dalam range harga, kecuali rumah yang dipilih user
-    if selected_house_id:
-        cursor.execute("""
-            SELECT * FROM houses 
-            WHERE harga_idr BETWEEN ? AND ?
-            AND id != ?
-            ORDER BY ABS(harga_idr - ?) LIMIT 6
-        """, (min_price, max_price, selected_house_id, target_house_price))
+
+    if not use_clustering:
+        # Price-based recommendations (existing logic)
+        target_house_price = pokok_pinjaman_idr / 0.8
+        min_price = target_house_price * 0.8
+        max_price = target_house_price * 1.2
+        
+        print(f"Price range for recommendations:")
+        print(f"- Minimum: Rp {min_price:,.0f}")
+        print(f"- Maximum: Rp {max_price:,.0f}")
+        
+        if selected_house_id:
+            cursor.execute("""
+                SELECT * FROM houses 
+                WHERE harga_idr BETWEEN ? AND ?
+                AND id != ?
+                ORDER BY ABS(harga_idr - ?) LIMIT 6
+            """, (min_price, max_price, selected_house_id, target_house_price))
+        else:
+            cursor.execute("""
+                SELECT * FROM houses 
+                WHERE harga_idr BETWEEN ? AND ?
+                ORDER BY ABS(harga_idr - ?) LIMIT 6
+            """, (min_price, max_price, target_house_price))
     else:
-        cursor.execute("""
-            SELECT * FROM houses 
-            WHERE harga_idr BETWEEN ? AND ?
-            ORDER BY ABS(harga_idr - ?) LIMIT 6
-        """, (min_price, max_price, target_house_price))
+        # Feature-based clustering recommendations
+        # Get all houses except the selected one
+        if selected_house_id:
+            cursor.execute("SELECT * FROM houses WHERE id != ?", (selected_house_id,))
+        else:
+            cursor.execute("SELECT * FROM houses")
+        
+        all_houses = [dict(row) for row in cursor.fetchall()]
+        
+        if not all_houses:
+            return []
+        
+        # Prepare features for clustering
+        features = ['harga_idr', 'kamar_tidur', 'kamar_mandi', 'luas_bangunan_m2', 'luas_tanah_m2', 'tahun_pembuatan']
+        X = np.array([[house[feature] for feature in features] for house in all_houses])
+        
+        # Normalize features
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        
+        # Perform K-means clustering
+        n_clusters = min(5, len(all_houses))  # Use at most 5 clusters
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+        clusters = kmeans.fit_predict(X_scaled)
+        
+        # Get the cluster of the target house
+        if selected_house_id:
+            cursor.execute("SELECT * FROM houses WHERE id = ?", (selected_house_id,))
+            target_house = dict(cursor.fetchone())
+            target_features = np.array([[target_house[feature] for feature in features]])
+            target_scaled = scaler.transform(target_features)
+            target_cluster = kmeans.predict(target_scaled)[0]
+            
+            # Get houses from the same cluster
+            recommended_houses = [house for house, cluster in zip(all_houses, clusters) if cluster == target_cluster]
+            # Sort by similarity to target house
+            recommended_houses.sort(key=lambda x: sum(abs(x[feature] - target_house[feature]) for feature in features))
+            recommended_houses = recommended_houses[:6]  # Get top 6 most similar houses
+        else:
+            # If no target house, return houses from the largest cluster
+            cluster_sizes = np.bincount(clusters)
+            largest_cluster = np.argmax(cluster_sizes)
+            recommended_houses = [house for house, cluster in zip(all_houses, clusters) if cluster == largest_cluster]
+            recommended_houses = recommended_houses[:6]
     
-    recommended_houses = [dict(row) for row in cursor.fetchall()]
+    if not use_clustering:
+        recommended_houses = [dict(row) for row in cursor.fetchall()]
+    
     conn.close()
     
     print(f"\nFound {len(recommended_houses)} recommendations:")
@@ -525,23 +629,28 @@ def predict():
 
             if prediction_label == 1:
                 print("\n=== Starting KPR Simulation ===")
-                
                 principal_loan_amount_idr = display_data_for_frontend.get('JumlahPinjamanDiajukan', 0)
                 loan_term_months = display_data_for_frontend.get('Loan_Amount_Term', 0)
-
                 print(f"DEBUG: Principal loan: {principal_loan_amount_idr:,.0f}")
                 print(f"DEBUG: Loan term: {loan_term_months} months")
-
-                kpr_simulation_results = calculate_kpr_simulation_details(
+                # Ambil bunga fix dari form, default ke 7.5 jika tidak ada
+                fixed_rate = float(request.form.get('Bank_Fixed_Rate', KPR_ANNUAL_INTEREST_RATE))
+                kpr_simulation_results = calculate_kpr_simulation_details_two_stage(
                     principal_loan_amount_idr, 
                     loan_term_months, 
-                    KPR_ANNUAL_INTEREST_RATE
+                    fixed_rate,
+                    floating_rate_percent=7.5,
+                    fixed_months=36
                 )
-                
                 print(f"DEBUG: KPR simulation results: {kpr_simulation_results}")
                 
-                # Get house recommendations based on loan amount
-                recommended_houses = get_recommended_houses(principal_loan_amount_idr, request.form.get('house_id'))
+                # Get house recommendations based on loan amount and clustering preference
+                use_clustering = request.form.get('use_clustering', 'false').lower() == 'true'
+                recommended_houses = get_recommended_houses(
+                    principal_loan_amount_idr, 
+                    request.form.get('house_id'),
+                    use_clustering=use_clustering
+                )
 
             response_message = {
                 "status": "success",
@@ -550,22 +659,16 @@ def predict():
                 "probability_refused": f"{probability_refused:.2f}",
                 "loan_details": display_data_for_frontend,
                 "kpr_simulation": kpr_simulation_results,
-                "recommended_houses": recommended_houses
+                "recommended_houses": recommended_houses 
             }
-            
             print("\n=== Final Response ===")
             print(f"DEBUG: Response status: {response_message['status']}")
             print(f"DEBUG: Prediction result: {response_message['prediction']}")
             print(f"DEBUG: Number of recommendations: {len(recommended_houses)}")
-            
             return jsonify(response_message)
-
         except Exception as e:
-            print(f"\n=== Error Occurred ===")
-            print(f"Error during prediction: {e}")
-            import traceback
-            traceback.print_exc() 
-            return jsonify({"status": "error", "message": f"Terjadi kesalahan: {e}"}), 500
+            print(f"ERROR: {e}")
+            return jsonify({"status": "error", "message": str(e)}), 400
 
 @app.route('/download-simulasi-kpr')
 def download_simulasi_kpr():
@@ -573,11 +676,85 @@ def download_simulasi_kpr():
         # Get parameters from query string
         principal_loan = float(request.args.get('principal'))
         loan_term = int(request.args.get('term'))
-        interest_rate = float(request.args.get('rate', KPR_ANNUAL_INTEREST_RATE))
-        
-        # Calculate installments
-        installments = calculate_monthly_installments(principal_loan, loan_term, interest_rate)
-        
+        # Accept both string and float for rate
+        rate_param = request.args.get('rate', KPR_ANNUAL_INTEREST_RATE)
+        try:
+            fixed_rate = float(rate_param)
+        except Exception:
+            # fallback if rate is not a float
+            fixed_rate = KPR_ANNUAL_INTEREST_RATE
+        floating_rate = 7.5
+        fixed_months = 36
+
+        # Prepare installments list for Excel (two-stage logic)
+        installments = []
+        remaining_principal = principal_loan
+        month = 1
+
+        # 1. Cicilan bunga fix
+        if loan_term > fixed_months:
+            n_fix = fixed_months
+            monthly_interest_rate_fix = (fixed_rate / 100) / 12
+            total_term = loan_term
+            if monthly_interest_rate_fix == 0:
+                monthly_payment_fix = principal_loan / total_term
+            else:
+                monthly_payment_fix = principal_loan * (monthly_interest_rate_fix * (1 + monthly_interest_rate_fix) ** total_term) / ((1 + monthly_interest_rate_fix) ** total_term - 1)
+            for _ in range(n_fix):
+                interest_payment = remaining_principal * monthly_interest_rate_fix
+                principal_payment = monthly_payment_fix - interest_payment
+                remaining_principal -= principal_payment
+                installments.append({
+                    'Bulan_ke': month,
+                    'Cicilan_Bulanan': monthly_payment_fix,
+                    'Pembayaran_Pokok': principal_payment,
+                    'Pembayaran_Bunga': interest_payment,
+                    'Sisa_Pinjaman': max(0, remaining_principal)
+                })
+                month += 1
+        else:
+            n_fix = loan_term
+            monthly_interest_rate_fix = (fixed_rate / 100) / 12
+            if monthly_interest_rate_fix == 0:
+                monthly_payment_fix = principal_loan / n_fix
+            else:
+                monthly_payment_fix = principal_loan * (monthly_interest_rate_fix * (1 + monthly_interest_rate_fix) ** n_fix) / ((1 + monthly_interest_rate_fix) ** n_fix - 1)
+            for _ in range(n_fix):
+                interest_payment = remaining_principal * monthly_interest_rate_fix
+                principal_payment = monthly_payment_fix - interest_payment
+                remaining_principal -= principal_payment
+                installments.append({
+                    'Bulan_ke': month,
+                    'Cicilan_Bulanan': monthly_payment_fix,
+                    'Pembayaran_Pokok': principal_payment,
+                    'Pembayaran_Bunga': interest_payment,
+                    'Sisa_Pinjaman': max(0, remaining_principal)
+                })
+                month += 1
+            # Only fixed stage needed
+            n_float = 0
+
+        # 2. Cicilan bunga floating (jika ada sisa bulan)
+        n_float = loan_term - n_fix
+        if n_float > 0:
+            monthly_interest_rate_float = (floating_rate / 100) / 12
+            if monthly_interest_rate_float == 0:
+                monthly_payment_float = remaining_principal / n_float
+            else:
+                monthly_payment_float = remaining_principal * (monthly_interest_rate_float * (1 + monthly_interest_rate_float) ** n_float) / ((1 + monthly_interest_rate_float) ** n_float - 1)
+            for _ in range(n_float):
+                interest_payment = remaining_principal * monthly_interest_rate_float
+                principal_payment = monthly_payment_float - interest_payment
+                remaining_principal -= principal_payment
+                installments.append({
+                    'Bulan_ke': month,
+                    'Cicilan_Bulanan': monthly_payment_float,
+                    'Pembayaran_Pokok': principal_payment,
+                    'Pembayaran_Bunga': interest_payment,
+                    'Sisa_Pinjaman': max(0, remaining_principal)
+                })
+                month += 1
+
         # Create Excel workbook
         wb = Workbook()
         ws = wb.active
@@ -603,7 +780,10 @@ def download_simulasi_kpr():
         ws['A4'] = "Jangka Waktu:"
         ws['B4'] = f"{loan_term} Bulan"
         ws['A5'] = "Suku Bunga:"
-        ws['B5'] = f"{interest_rate}% per tahun"
+        if loan_term > fixed_months:
+            ws['B5'] = f"{fixed_rate}% (36 bln) lalu {floating_rate}%"
+        else:
+            ws['B5'] = f"{fixed_rate}%"
 
         # Headers - Row 7
         headers = ['Bulan ke-', 'Cicilan Bulanan', 'Pembayaran Pokok', 'Pembayaran Bunga', 'Sisa Pinjaman']
@@ -622,7 +802,6 @@ def download_simulasi_kpr():
             ws.cell(row=row, column=3, value=inst['Pembayaran_Pokok']).number_format = '#,##0.00'
             ws.cell(row=row, column=4, value=inst['Pembayaran_Bunga']).number_format = '#,##0.00'
             ws.cell(row=row, column=5, value=inst['Sisa_Pinjaman']).number_format = '#,##0.00'
-            
             # Add borders to all cells in the row
             for col in range(1, 6):
                 ws.cell(row=row, column=col).border = border
