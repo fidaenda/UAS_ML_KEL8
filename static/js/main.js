@@ -295,7 +295,52 @@
   $('[data-toggle="popover"]').popover()
 	$('[data-toggle="tooltip"]').tooltip()
 
+// Fungsi untuk download simulasi KPR (diperbaiki)
+function downloadSimulasiKPR() {
+    // Ambil data dari elemen HTML
+    const principal = parseFloat(document.getElementById('jumlah-pinjaman').textContent.replace(/[^\d]/g, ''));
+    const term = parseInt(document.getElementById('jangka-waktu').textContent.replace(/[^\d]/g, ''));
+    
+    // ✅ PERBAIKAN: Ambil bunga fix yang benar dari data yang tersimpan
+    // Cari elemen yang menampilkan bunga untuk mendapatkan nilai yang tepat
+    const bungaText = document.querySelector('.simulasi-info').textContent;
+    let fixedRate = 6.0; // default
+    let floatingRate = 7.5; // default
+    
+    // Parse bunga dari text, misal "6.0% (36 bln) lalu 7.5%"
+    const bungaMatch = bungaText.match(/(\d+\.?\d*)%.*?(\d+\.?\d*)%/);
+    if (bungaMatch) {
+        fixedRate = parseFloat(bungaMatch[1]);
+        floatingRate = parseFloat(bungaMatch[2]);
+    } else {
+        // Jika hanya satu bunga (misal "6.0%")
+        const singleBungaMatch = bungaText.match(/(\d+\.?\d*)%/);
+        if (singleBungaMatch) {
+            fixedRate = parseFloat(singleBungaMatch[1]);
+        }
+    }
+    
+    console.log(`Download KPR: Principal=${principal}, Term=${term}, Fixed=${fixedRate}%, Floating=${floatingRate}%`);
+    
+    // Buat URL dengan parameter yang benar
+    const downloadUrl = `/download-simulasi-kpr?principal=${principal}&term=${term}&fixed_rate=${fixedRate}&floating_rate=${floatingRate}&fixed_months=36`;
+    
+    // Trigger download
+    window.location.href = downloadUrl;
+}
 
+// Alternative: Jika data bunga disimpan dalam variabel global saat prediksi
+function downloadSimulasiKPRFromGlobal() {
+    // Asumsi ada variabel global yang menyimpan data simulasi
+    if (typeof window.kprSimulationData !== 'undefined') {
+        const data = window.kprSimulationData;
+        const downloadUrl = `/download-simulasi-kpr?principal=${data.principal}&term=${data.term}&fixed_rate=${data.fixedRate}&floating_rate=${data.floatingRate}&fixed_months=36`;
+        window.location.href = downloadUrl;
+    } else {
+        // Fallback ke metode parsing
+        downloadSimulasiKPR();
+    }
+}
 
 })(jQuery);
 

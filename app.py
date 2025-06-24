@@ -187,20 +187,20 @@ def calculate_kpr_simulation_details_two_stage(principal_loan_idr, loan_term_mon
     if principal_loan_idr <= 0 or loan_term_months <= 0 or fixed_rate_percent < 0:
         return {
             "monthly_payment": 0.0,
+            "monthly_payment_range": "Rp 0",
             "total_interest_paid": 0.0,
             "total_payment": 0.0,
-            "annual_interest_rate": fixed_rate_percent,
-            "min_monthly_payment": 0.0,
-            "max_monthly_payment": 0.0
+            "annual_interest_rate": fixed_rate_percent
         }
 
+    # Use default floating rate if not specified
     if floating_rate_percent is None:
         floating_rate_percent = KPR_FLOATING_RATE
 
+    # If loan term is less than or equal to fixed period, use only fixed rate
     if loan_term_months <= fixed_months:
         result = calculate_kpr_simulation_details(principal_loan_idr, loan_term_months, fixed_rate_percent)
-        result["min_monthly_payment"] = result["monthly_payment"]
-        result["max_monthly_payment"] = result["monthly_payment"]
+        result["monthly_payment_range"] = f"Rp {result['monthly_payment']:,.0f}"
         return result
 
     # 1. Cicilan 36 bulan pertama (bunga fix)
@@ -210,6 +210,7 @@ def calculate_kpr_simulation_details_two_stage(principal_loan_idr, loan_term_mon
         monthly_payment_fix = principal_loan_idr / loan_term_months
     else:
         monthly_payment_fix = principal_loan_idr * (monthly_interest_rate_fix * (1 + monthly_interest_rate_fix) ** loan_term_months) / ((1 + monthly_interest_rate_fix) ** loan_term_months - 1)
+    # Simulasikan 36x pembayaran
     remaining_principal = principal_loan_idr
     total_interest_fix = 0.0
     for _ in range(n_fix):
@@ -232,26 +233,33 @@ def calculate_kpr_simulation_details_two_stage(principal_loan_idr, loan_term_mon
         remaining_principal -= principal_payment
         total_interest_float += interest_payment
 
+    # Rata-rata cicilan per bulan (untuk display)
     blended_monthly_payment = (monthly_payment_fix * n_fix + monthly_payment_float * n_float) / loan_term_months
     total_interest_paid = total_interest_fix + total_interest_float
     total_payment = principal_loan_idr + total_interest_paid
+    
+    # Format interest rate display
     if loan_term_months > fixed_months:
         interest_rate_display = f"{fixed_rate_percent}% (36 bln) lalu {floating_rate_percent}%"
     else:
         interest_rate_display = f"{fixed_rate_percent}%"
-
-    min_monthly_payment = min(monthly_payment_fix, monthly_payment_float)
-    max_monthly_payment = max(monthly_payment_fix, monthly_payment_float)
-
+    
+    # Create monthly payment range display
+    if monthly_payment_fix < monthly_payment_float:
+        monthly_payment_range = f"Rp {monthly_payment_fix:,.0f} - Rp {monthly_payment_float:,.0f}"
+    else:
+        monthly_payment_range = f"Rp {monthly_payment_float:,.0f} - Rp {monthly_payment_fix:,.0f}"
+        
     return {
         "monthly_payment": blended_monthly_payment,
+        "monthly_payment_range": monthly_payment_range,
+        "monthly_payment_fixed": monthly_payment_fix,
+        "monthly_payment_floating": monthly_payment_float,
         "total_interest_paid": total_interest_paid,
         "total_payment": total_payment,
         "annual_interest_rate": interest_rate_display,
         "fixed_rate": fixed_rate_percent,
-        "floating_rate": floating_rate_percent,
-        "min_monthly_payment": min_monthly_payment,
-        "max_monthly_payment": max_monthly_payment
+        "floating_rate": floating_rate_percent
     }
 
 # --- Pra-pemrosesan input untuk MODEL KPR (menggunakan data dari properties-single.html) ---
@@ -327,7 +335,7 @@ def preprocess_kpr_input(form_data):
     processed_data_for_model['LoanAmount'] = pokok_pinjaman_diajukan_idr
 
     # Loan_Amount_Term (numerik, dalam bulan, for display & model)
-    loan_amount_term_months_val = raw_loan_amount_term_months if not pd.isna(raw_loan_amount_term_months) and raw_loan_amount_months > 0 else DEFAULT_IMPUTATION_VALUES['Loan_Amount_Term']
+    loan_amount_term_months_val = raw_loan_amount_term_months if not pd.isna(raw_loan_amount_term_months) and raw_loan_amount_term_months > 0 else DEFAULT_IMPUTATION_VALUES['Loan_Amount_Term']
     
     display_data_for_frontend['Loan_Amount_Term'] = loan_amount_term_months_val 
     processed_data_for_model['Loan_Amount_Term'] = loan_amount_term_months_val 
